@@ -1,32 +1,33 @@
-import './style.css'
-import rabbitUrl from './assets/rabbit.png'
+import "./style.css";
+import rabbitUrl from "./assets/rabbit.png";
 
-const canvas = document.getElementById('game')
-const context = canvas.getContext('2d')
+const canvas = document.getElementById("game");
+const context = canvas.getContext("2d");
 
-const grid = 32
-const tileCount = canvas.width / grid
-const tickDelay = 9
+const grid = 32;
+const tileCount = canvas.width / grid;
 
 const COLORS = {
-  bus: '#FFC107',
-  busDark: '#F9A825',
-  busFront: '#FF8F00',
-  window: '#B3E5FC',
-  wheel: '#37474F',
-}
+  bus: "#FFC107",
+  busDark: "#F9A825",
+  busFront: "#FF8F00",
+  window: "#B3E5FC",
+  wheel: "#37474F",
+};
 
-const rabbitImg = new Image()
-rabbitImg.src = rabbitUrl
+const rabbitImg = new Image();
+rabbitImg.src = rabbitUrl;
 
-let count = 0
-let snake
-let pickup
-let score
-let gameOver = false
+let lastTime = 0;
+const step = 1000 / 6;
+let accumulator = 0;
+let snake;
+let pickup;
+let score;
+let gameOver = false;
 
 function updateHud() {
-  document.getElementById('hud').innerText = 'Пассажиры: ' + score
+  document.getElementById("hud").innerText = "Пассажиры: " + score;
 }
 
 function init() {
@@ -37,270 +38,322 @@ function init() {
     dy: 0,
     cells: [],
     maxCells: 4,
-  }
+  };
 
-  pickup = spawnPickup()
-  score = 0
-  gameOver = false
-  count = 0
+  pickup = spawnPickup();
+  score = 0;
+  gameOver = false;
 
-  updateHud()
-  document.getElementById('overlay').style.display = 'none'
+  updateHud();
+  document.getElementById("overlay").style.display = "none";
 }
 
 function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 function spawnPickup() {
   return {
     x: getRandomInt(0, tileCount) * grid,
     y: getRandomInt(0, tileCount) * grid,
-  }
+  };
 }
 
 function endGame() {
-  if (gameOver) return
+  if (gameOver) return;
 
-  gameOver = true
+  gameOver = true;
 
-  document.getElementById('overlay').style.display = 'flex'
-  document.getElementById('finalScore').innerText = 'Пассажиры: ' + score
+  document.getElementById("overlay").style.display = "flex";
+  document.getElementById("finalScore").innerText = "Пассажиры: " + score;
 
   if (window.ReactNativeWebView) {
     window.ReactNativeWebView.postMessage(
       JSON.stringify({
-        event: 'GAME_OVER',
+        event: "GAME_OVER",
         score,
-        gameType: 'snake',
+        gameType: "snake",
       }),
-    )
+    );
   }
 }
 
 function restart() {
-  init()
+  init();
 }
 
 function setDirection(dx, dy) {
-  if (gameOver) return
+  if (gameOver) return;
   if (dx !== 0 && snake.dx === 0) {
-    snake.dx = dx
-    snake.dy = 0
+    snake.dx = dx;
+    snake.dy = 0;
   } else if (dy !== 0 && snake.dy === 0) {
-    snake.dx = 0
-    snake.dy = dy
+    snake.dx = 0;
+    snake.dy = dy;
   }
 }
 
 function getSegmentDirection(index) {
   if (index === 0) {
-    return { dx: snake.dx, dy: snake.dy }
+    return { dx: snake.dx, dy: snake.dy };
   }
 
-  const curr = snake.cells[index]
-  const towardHead = snake.cells[index - 1]
-  return { dx: towardHead.x - curr.x, dy: towardHead.y - curr.y }
+  const curr = snake.cells[index];
+  const towardHead = snake.cells[index - 1];
+  return { dx: towardHead.x - curr.x, dy: towardHead.y - curr.y };
 }
 
 function roundRect(x, y, width, height, radius) {
-  context.beginPath()
-  context.moveTo(x + radius, y)
-  context.lineTo(x + width - radius, y)
-  context.quadraticCurveTo(x + width, y, x + width, y + radius)
-  context.lineTo(x + width, y + height - radius)
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
-  context.lineTo(x + radius, y + height)
-  context.quadraticCurveTo(x, y + height, x, y + height - radius)
-  context.lineTo(x, y + radius)
-  context.quadraticCurveTo(x, y, x + radius, y)
-  context.closePath()
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.lineTo(x + width - radius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + radius);
+  context.lineTo(x + width, y + height - radius);
+  context.quadraticCurveTo(
+    x + width,
+    y + height,
+    x + width - radius,
+    y + height,
+  );
+  context.lineTo(x + radius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - radius);
+  context.lineTo(x, y + radius);
+  context.quadraticCurveTo(x, y, x + radius, y);
+  context.closePath();
 }
 
 function drawWheels() {
-  const wheelR = grid / 8
-  const wheelY = grid - grid / 8
+  const wheelR = grid / 8;
+  const wheelY = grid - grid / 8;
 
-  context.fillStyle = COLORS.wheel
-  context.beginPath()
-  context.arc(grid / 4, wheelY, wheelR, 0, Math.PI * 2)
-  context.arc(grid - grid / 4, wheelY, wheelR, 0, Math.PI * 2)
-  context.fill()
+  context.fillStyle = COLORS.wheel;
+  context.beginPath();
+  context.arc(grid / 4, wheelY, wheelR, 0, Math.PI * 2);
+  context.arc(grid - grid / 4, wheelY, wheelR, 0, Math.PI * 2);
+  context.fill();
 }
 
 function drawRabbitInWindow(x, y, size) {
-  if (!rabbitImg.complete) return
-  context.drawImage(rabbitImg, x, y, size, size)
+  if (!rabbitImg.complete) return;
+  context.drawImage(rabbitImg, x, y, size, size);
 }
 
 function drawBusHead() {
-  const bodyH = grid - grid / 4
-  const radius = grid / 10
+  const bodyH = grid - grid / 4;
+  const radius = grid / 10;
 
-  context.fillStyle = COLORS.bus
-  roundRect(0, grid / 16, grid - 1, bodyH, radius)
-  context.fill()
+  context.fillStyle = COLORS.bus;
+  roundRect(0, grid / 16, grid - 1, bodyH, radius);
+  context.fill();
 
-  context.fillStyle = COLORS.busFront
-  roundRect(grid - grid / 2.3, grid / 8, grid / 5.3, grid - grid / 5.3, grid / 16)
-  context.fill()
+  context.fillStyle = COLORS.busFront;
+  roundRect(
+    grid - grid / 2.3,
+    grid / 8,
+    grid / 5.3,
+    grid - grid / 5.3,
+    grid / 16,
+  );
+  context.fill();
 
-  context.fillStyle = COLORS.window
-  roundRect(grid / 10, grid / 10, grid / 4, grid / 4.5, grid / 16)
-  context.fill()
+  context.fillStyle = COLORS.window;
+  roundRect(grid / 10, grid / 10, grid / 4, grid / 4.5, grid / 16);
+  context.fill();
 
-  drawRabbitInWindow(grid / 9, grid / 12, grid / 4.5)
+  drawRabbitInWindow(grid / 9, grid / 12, grid / 4.5);
 
-  drawWheels()
+  drawWheels();
 }
 
 function drawBusCarriage() {
-  const bodyH = grid - grid / 4
-  const radius = grid / 16
+  const bodyH = grid - grid / 4;
+  const radius = grid / 16;
 
-  context.fillStyle = COLORS.bus
-  roundRect(0, grid / 16, grid - 1, bodyH, radius)
-  context.fill()
+  context.fillStyle = COLORS.bus;
+  roundRect(0, grid / 16, grid - 1, bodyH, radius);
+  context.fill();
 
-  context.strokeStyle = COLORS.busDark
-  context.lineWidth = 2
-  context.strokeRect(1, grid / 10, grid - 2, bodyH - grid / 20)
+  context.strokeStyle = COLORS.busDark;
+  context.lineWidth = 2;
+  context.strokeRect(1, grid / 10, grid - 2, bodyH - grid / 20);
 
-  context.fillStyle = COLORS.window
-  roundRect(grid / 10, grid / 10, grid - grid / 5, grid / 4.5, grid / 16)
-  context.fill()
+  context.fillStyle = COLORS.window;
+  roundRect(grid / 10, grid / 10, grid - grid / 5, grid / 4.5, grid / 16);
+  context.fill();
 
-  drawRabbitInWindow(grid / 8, grid / 10, grid / 5.3)
+  drawRabbitInWindow(grid / 8, grid / 10, grid / 5.3);
 
-  drawWheels()
+  drawWheels();
 }
 
 function drawBusSegment(cell, index) {
-  const { dx, dy } = getSegmentDirection(index)
+  const { dx, dy } = getSegmentDirection(index);
 
-  context.save()
-  context.translate(cell.x + grid / 2, cell.y + grid / 2)
+  context.save();
+  context.translate(cell.x + grid / 2, cell.y + grid / 2);
 
-  if (dx < 0) context.rotate(Math.PI)
-  else if (dy > 0) context.rotate(Math.PI / 2)
-  else if (dy < 0) context.rotate(-Math.PI / 2)
+  if (dx < 0) context.rotate(Math.PI);
+  else if (dy > 0) context.rotate(Math.PI / 2);
+  else if (dy < 0) context.rotate(-Math.PI / 2);
 
-  context.translate(-grid / 2, -grid / 2)
+  context.translate(-grid / 2, -grid / 2);
 
   if (index === 0) {
-    drawBusHead()
+    drawBusHead();
   } else {
-    drawBusCarriage()
+    drawBusCarriage();
   }
 
-  context.restore()
+  context.restore();
 }
 
 function drawPickup() {
-  if (!rabbitImg.complete) return
+  if (!rabbitImg.complete) return;
 
-  const padding = grid / 16
-  const size = grid - padding * 2
+  const padding = grid / 16;
+  const size = grid - padding * 2;
 
-  context.save()
-  context.shadowColor = 'rgba(255, 182, 193, 0.8)'
-  context.shadowBlur = grid / 5
+  context.save();
+  context.shadowColor = "rgba(255, 182, 193, 0.8)";
+  context.shadowBlur = grid / 5;
   context.drawImage(
     rabbitImg,
     pickup.x + padding,
     pickup.y + padding,
     size,
     size,
-  )
-  context.restore()
+  );
+  context.restore();
 }
 
-function loop() {
-  requestAnimationFrame(loop)
+function update() {
+  snake.x += snake.dx;
+  snake.y += snake.dy;
 
-  if (gameOver) return
+  if (snake.x < 0) snake.x = canvas.width - grid;
+  else if (snake.x >= canvas.width) snake.x = 0;
 
-  if (++count < tickDelay) return
-  count = 0
+  if (snake.y < 0) snake.y = canvas.height - grid;
+  else if (snake.y >= canvas.height) snake.y = 0;
 
-  context.clearRect(0, 0, canvas.width, canvas.height)
-
-  snake.x += snake.dx
-  snake.y += snake.dy
-
-  if (snake.x < 0) snake.x = canvas.width - grid
-  else if (snake.x >= canvas.width) snake.x = 0
-
-  if (snake.y < 0) snake.y = canvas.height - grid
-  else if (snake.y >= canvas.height) snake.y = 0
-
-  snake.cells.unshift({ x: snake.x, y: snake.y })
+  snake.cells.unshift({ x: snake.x, y: snake.y });
 
   if (snake.cells.length > snake.maxCells) {
-    snake.cells.pop()
+    snake.cells.pop();
   }
 
   if (snake.x === pickup.x && snake.y === pickup.y) {
-    snake.maxCells++
-    score++
-    updateHud()
-    pickup = spawnPickup()
+    snake.maxCells++;
+    score++;
+    updateHud();
+    pickup = spawnPickup();
   }
 
   for (let i = 1; i < snake.cells.length; i++) {
     if (snake.cells[i].x === snake.x && snake.cells[i].y === snake.y) {
-      endGame()
-      return
+      endGame();
+      return;
     }
   }
-
-  drawPickup()
-
-  snake.cells.forEach((cell, index) => {
-    drawBusSegment(cell, index)
-  })
 }
 
-let startX = 0
-let startY = 0
+function render() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawPickup();
+
+  snake.cells.forEach((cell, index) => {
+    drawBusSegment(cell, index);
+  });
+}
+
+function loop(time = 0) {
+  requestAnimationFrame(loop);
+
+  if (gameOver) return;
+
+  const delta = time - lastTime;
+  lastTime = time;
+  accumulator += delta;
+
+  while (accumulator >= step) {
+    update();
+    accumulator -= step;
+  }
+
+  render();
+}
+
+let startX = 0;
+let startY = 0;
 
 window.addEventListener(
-  'touchstart',
+  "touchstart",
   (e) => {
-    const touch = e.touches[0]
-    startX = touch.clientX
-    startY = touch.clientY
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
   },
   { passive: true },
-)
+);
 
 window.addEventListener(
-  'touchend',
+  "touchend",
   (e) => {
-    const touch = e.changedTouches[0]
-    const dx = touch.clientX - startX
-    const dy = touch.clientY - startY
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
 
-    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
 
     if (Math.abs(dx) > Math.abs(dy)) {
-      setDirection(dx > 0 ? grid : -grid, 0)
+      setDirection(dx > 0 ? grid : -grid, 0);
     } else {
-      setDirection(0, dy > 0 ? grid : -grid)
+      setDirection(0, dy > 0 ? grid : -grid);
     }
   },
   { passive: true },
-)
+);
 
-document.getElementById('restart').addEventListener('click', restart)
+window.addEventListener("keydown", (e) => {
+  if (gameOver) return;
+
+  switch (e.key) {
+    case "ArrowUp":
+    case "w":
+    case "W":
+      setDirection(0, -grid);
+      break;
+
+    case "ArrowDown":
+    case "s":
+    case "S":
+      setDirection(0, grid);
+      break;
+
+    case "ArrowLeft":
+    case "a":
+    case "A":
+      setDirection(-grid, 0);
+      break;
+
+    case "ArrowRight":
+    case "d":
+    case "D":
+      setDirection(grid, 0);
+      break;
+  }
+});
+
+document.getElementById("restart").addEventListener("click", restart);
 
 function startGame() {
-  init()
-  loop()
+  init();
+  loop();
 }
 
 if (rabbitImg.complete) {
-  startGame()
+  startGame();
 } else {
-  rabbitImg.onload = startGame
+  rabbitImg.onload = startGame;
 }
