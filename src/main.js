@@ -8,11 +8,11 @@ const grid = 32;
 const tileCount = canvas.width / grid;
 
 const COLORS = {
-  bus: "#FFC107",
-  busDark: "#F9A825",
-  busFront: "#FF8F00",
-  window: "#B3E5FC",
-  wheel: "#37474F",
+  bus: "#E53935",
+  busDark: "#B71C1C",
+  busFront: "#FF5252",
+  window: "#FFCDD2",
+  wheel: "#263238",
 };
 
 const rabbitImg = new Image();
