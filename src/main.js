@@ -52,11 +52,21 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
+function isOnSnake(x, y) {
+  return snake.cells.some((cell) => cell.x === x && cell.y === y);
+}
+
 function spawnPickup() {
-  return {
-    x: getRandomInt(0, tileCount) * grid,
-    y: getRandomInt(0, tileCount) * grid,
-  };
+  let x, y;
+  let tries = 0;
+
+  do {
+    x = getRandomInt(0, tileCount) * grid;
+    y = getRandomInt(0, tileCount) * grid;
+    tries++;
+  } while (isOnSnake(x, y) && tries < 100);
+
+  return { x, y };
 }
 
 function endGame() {
