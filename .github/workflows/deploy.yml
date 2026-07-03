@@ -1,0 +1,58 @@
+# Название вашего workflow
+name: Build and Deploy Snake Game
+
+# Когда запускать
+on:
+  # При пуше в ветку main
+  push:
+    branches: [ "main" ]
+  # При создании pull request в main (для проверки сборки)
+  pull_request:
+    branches: [ "main" ]
+  # Возможность запустить вручную из вкладки Actions
+  workflow_dispatch:
+
+# Разрешения для деплоя на GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Сам jobs
+jobs:
+  # Один job — build-and-deploy
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Загружаем код
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # 2. Устанавливаем Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # Включаем кэширование для yarn
+          cache: 'yarn'
+      
+      # 3. Устанавливаем зависимости
+      - name: Install dependencies
+        run: yarn install
+        # Если используете npm, замените на: npm install
+      
+      # 4. Собираем игру
+      - name: Build game
+        run: yarn build
+        # Если используете npm, замените на: npm run build
+      
+      # 5. Загружаем собранные файлы как артефакт
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+      
+      # 6. Деплоим на GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
