@@ -1,3 +1,21 @@
+:root {
+  /* --bg: #111111;
+  --canvas-bg: #000000;
+  --text: #ffffff; */
+  --bg: #f4f6f8;
+  --canvas-bg: #ffffff;
+  --text: #1f2937;
+}
+
+body {
+  color: var(--text);
+  background: var(--bg);
+}
+
+canvas {
+  background: var(--canvas-bg);
+}
+
 html,
 body {
   width: 100%;
@@ -13,8 +31,6 @@ body {
   align-items: center;
   overflow: hidden;
   font-family: Arial, sans-serif;
-  color: white;
-  background: #111111;
   user-select: none;
 
   touch-action: none;
@@ -26,7 +42,6 @@ canvas {
   max-width: 90vh;
   height: 90vw;
   max-height: 90vh;
-  background: #000000;
   border-radius: 12px;
 
   image-rendering: pixelated;

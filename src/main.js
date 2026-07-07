@@ -224,8 +224,10 @@ function drawPickup() {
   const size = grid - padding * 2;
 
   context.save();
+
   context.shadowColor = "rgba(255, 182, 193, 0.8)";
   context.shadowBlur = grid / 5;
+
   context.drawImage(
     rabbitImg,
     pickup.x + padding,
@@ -233,6 +235,7 @@ function drawPickup() {
     size,
     size,
   );
+
   context.restore();
 }
 
