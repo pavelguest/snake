@@ -98,7 +98,7 @@ function endGame() {
   gameOver = true;
 
   document.getElementById("overlay").style.display = "flex";
-  document.getElementById("finalScore").innerText = "Пассажиры: " + score;
+  document.getElementById("finalScore").innerText = "Зайцы: " + score;
 
   if (window.ReactNativeWebView) {
     window.ReactNativeWebView.postMessage(
