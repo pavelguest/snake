@@ -50,7 +50,7 @@ let score;
 let gameOver = false;
 
 function updateHud() {
-  document.getElementById("hud").innerText = "Пассажиры: " + score;
+  document.getElementById("hud").innerText = "Зайцы: " + score;
 }
 
 function init() {
