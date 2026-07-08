@@ -320,7 +320,7 @@ function loop(time = 0) {
 let startX = 0;
 let startY = 0;
 
-window.addEventListener(
+canvas.addEventListener(
   "touchstart",
   (e) => {
     const touch = e.touches[0];
@@ -330,7 +330,7 @@ window.addEventListener(
   { passive: true },
 );
 
-window.addEventListener(
+canvas.addEventListener(
   "touchend",
   (e) => {
     const touch = e.changedTouches[0];

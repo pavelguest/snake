@@ -30,11 +30,8 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  font-family: Arial, sans-serif;
-  user-select: none;
 
-  touch-action: none;
-  -webkit-touch-callout: none;
+  overscroll-behavior: none;
 }
 
 canvas {
@@ -44,9 +41,9 @@ canvas {
   max-height: 90vh;
   background: var(--canvas-bg);
   border-radius: 12px;
+  -webkit-user-select: none;
+          user-select: none;
 
-  image-rendering: auto;
-  overscroll-behavior: none;
   touch-action: none;
 }
 
