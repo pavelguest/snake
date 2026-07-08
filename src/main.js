@@ -1,11 +1,34 @@
 import "./style.css";
-import rabbitUrl from "./assets/rabbit.png";
+import rabbitUrl from "./assets/rabbit.svg";
 
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
 
+const GAME_SIZE = 384;
+
 const grid = 32;
-const tileCount = canvas.width / grid;
+const tileCount = GAME_SIZE / grid;
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = GAME_SIZE * dpr;
+  canvas.height = GAME_SIZE * dpr;
+
+  canvas.style.width = "90vw";
+  canvas.style.height = "90vw";
+  canvas.style.maxWidth = "90vh";
+  canvas.style.maxHeight = "90vh";
+
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+}
+
+resizeCanvas();
+
+window.addEventListener("resize", resizeCanvas);
 
 const COLORS = {
   bus: "#E53935",
@@ -220,13 +243,10 @@ function drawBusSegment(cell, index) {
 function drawPickup() {
   if (!rabbitImg.complete) return;
 
-  const padding = grid / 16;
-  const size = grid - padding * 2;
-
   context.save();
 
-  context.shadowColor = "rgba(255, 182, 193, 0.8)";
-  context.shadowBlur = grid / 5;
+  const padding = 2;
+  const size = grid - padding * 2;
 
   context.drawImage(
     rabbitImg,
@@ -243,11 +263,11 @@ function update() {
   snake.x += snake.dx;
   snake.y += snake.dy;
 
-  if (snake.x < 0) snake.x = canvas.width - grid;
-  else if (snake.x >= canvas.width) snake.x = 0;
+  if (snake.x < 0) snake.x = GAME_SIZE - grid;
+  else if (snake.x >= GAME_SIZE) snake.x = 0;
 
-  if (snake.y < 0) snake.y = canvas.height - grid;
-  else if (snake.y >= canvas.height) snake.y = 0;
+  if (snake.y < 0) snake.y = GAME_SIZE - grid;
+  else if (snake.y >= GAME_SIZE) snake.y = 0;
 
   snake.cells.unshift({ x: snake.x, y: snake.y });
 
@@ -271,7 +291,7 @@ function update() {
 }
 
 function render() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.clearRect(0, 0, GAME_SIZE, GAME_SIZE);
 
   drawPickup();
 
