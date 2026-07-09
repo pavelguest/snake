@@ -40,6 +40,7 @@ canvas {
   height: min(90vw, 384px);
   max-height: 90vh;
   background: var(--canvas-bg);
+  border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   -webkit-user-select: none;
           user-select: none;

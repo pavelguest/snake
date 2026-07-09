@@ -42,7 +42,7 @@ const rabbitImg = new Image();
 rabbitImg.src = rabbitUrl;
 
 let lastTime = 0;
-const step = 1000 / 6;
+const step = 1000 / 4;
 let accumulator = 0;
 let snake;
 let pickup;
@@ -319,31 +319,75 @@ function loop(time = 0) {
 
 let startX = 0;
 let startY = 0;
+let isSwiping = false;
 
 canvas.addEventListener(
   "touchstart",
   (e) => {
+    if (gameOver) return;
+
     const touch = e.touches[0];
+
     startX = touch.clientX;
     startY = touch.clientY;
+    isSwiping = false;
   },
   { passive: true },
 );
 
 canvas.addEventListener(
-  "touchend",
+  "touchmove",
   (e) => {
-    const touch = e.changedTouches[0];
+    if (gameOver) return;
+
+    const touch = e.touches[0];
+
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
 
-    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
+      isSwiping = true;
+      e.preventDefault();
+    }
+  },
+  { passive: false },
+);
 
-    if (Math.abs(dx) > Math.abs(dy)) {
+canvas.addEventListener(
+  "touchend",
+  (e) => {
+    if (gameOver || !isSwiping) return;
+
+    const touch = e.changedTouches[0];
+
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    const threshold = 20;
+
+    if (Math.max(absX, absY) < threshold) {
+      isSwiping = false;
+      return;
+    }
+
+    if (absX > absY) {
       setDirection(dx > 0 ? grid : -grid, 0);
     } else {
       setDirection(0, dy > 0 ? grid : -grid);
     }
+
+    isSwiping = false;
+  },
+  { passive: true },
+);
+
+canvas.addEventListener(
+  "touchcancel",
+  () => {
+    isSwiping = false;
   },
   { passive: true },
 );
