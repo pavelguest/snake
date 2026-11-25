@@ -79,6 +79,20 @@ function updateHud() {
   document.getElementById("hud").innerText = "Счёт: " + score;
 }
 
+function showScoreEffect(value) {
+  const effect = document.getElementById("scoreEffect");
+
+  effect.innerText = value > 0 ? `+${value}` : `${value}`;
+
+  effect.classList.remove("show", "positive", "negative");
+
+  effect.classList.add(value > 0 ? "positive" : "negative");
+
+  void effect.offsetWidth;
+
+  effect.classList.add("show");
+}
+
 function init() {
   score = 0;
 
@@ -296,6 +310,7 @@ function update() {
     snake.maxCells++;
     score++;
     updateHud();
+    showScoreEffect(+1);
 
     card = spawnCard();
     pickupsSinceLastCard++;
@@ -316,6 +331,7 @@ function update() {
 
     score--;
     updateHud();
+    showScoreEffect(-1);
     rabbit = null;
   }
 
