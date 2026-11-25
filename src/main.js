@@ -80,20 +80,23 @@ function updateHud() {
 }
 
 function init() {
+  score = 0;
+
   snake = {
     x: 6,
     y: 6,
     dx: 1,
     dy: 0,
     cells: [],
-    maxCells: 4,
+    maxCells: 3,
   };
 
   pickupsSinceLastCard = 0;
   nextCardAt = 3 + Math.floor(Math.random() * 3);
   rabbit = null;
+  card = null;
   card = spawnCard();
-  score = 0;
+
   gameOver = false;
 
   updateHud();
