@@ -35,16 +35,18 @@ body {
 }
 
 canvas {
-  width: min(90vw, 384px);
-  max-width: 90vh;
-  height: min(90vw, 384px);
-  max-height: 90vh;
+  width: 100%;
+  height: 100%;
+  max-width: min(90vw, 90dvh);
+  max-height: min(90vw, 90dvh);
+  aspect-ratio: 1;
   background: var(--canvas-bg);
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   -webkit-user-select: none;
           user-select: none;
 
+  image-rendering: auto;
   touch-action: none;
 }
 

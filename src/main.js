@@ -1,13 +1,29 @@
 import "./style.css";
 import rabbitUrl from "./assets/rabbit.svg";
+import cardUrl from "./assets/card.svg";
+import busHeadUrl from "./assets/bus-head.svg";
+import busBodyUrl from "./assets/bus-body.svg";
+import busBackUrl from "./assets/bus-back.svg";
 
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
 
-const GAME_SIZE = 384;
+const tileCount = 12;
+let GAME_SIZE;
+let grid;
 
-const grid = 32;
-const tileCount = GAME_SIZE / grid;
+function calculateGameSize() {
+  const screen = Math.min(window.innerWidth, window.innerHeight);
+  const size = screen * 0.92;
+  return Math.min(Math.max(size, 384), 768);
+}
+
+function updateGameSize() {
+  GAME_SIZE = calculateGameSize();
+  grid = GAME_SIZE / tileCount;
+}
+
+updateGameSize();
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -15,10 +31,10 @@ function resizeCanvas() {
   canvas.width = GAME_SIZE * dpr;
   canvas.height = GAME_SIZE * dpr;
 
-  canvas.style.width = "90vw";
-  canvas.style.height = "90vw";
-  canvas.style.maxWidth = "90vh";
-  canvas.style.maxHeight = "90vh";
+  canvas.style.width = `${GAME_SIZE}px`;
+  canvas.style.height = `${GAME_SIZE}px`;
+  canvas.style.maxWidth = `min(90vw, 90dvh)`;
+  canvas.style.maxHeight = `min(90vw, 90dvh)`;
 
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
@@ -30,24 +46,32 @@ resizeCanvas();
 
 window.addEventListener("resize", resizeCanvas);
 
-const COLORS = {
-  bus: "#E53935",
-  busDark: "#B71C1C",
-  busFront: "#FF5252",
-  window: "#FFCDD2",
-  wheel: "#263238",
-};
-
 const rabbitImg = new Image();
 rabbitImg.src = rabbitUrl;
+
+const cardImg = new Image();
+cardImg.src = cardUrl;
+
+const busHeadImg = new Image();
+busHeadImg.src = busHeadUrl;
+
+const busBodyImg = new Image();
+busBodyImg.src = busBodyUrl;
+
+const busBackImg = new Image();
+busBackImg.src = busBackUrl;
 
 let lastTime = 0;
 const step = 1000 / 4;
 let accumulator = 0;
 let snake;
-let pickup;
 let score;
 let gameOver = false;
+let pickupsSinceLastCard = 0;
+let nextCardAt = 0;
+const CARD_TTL = 5; // seconds
+let rabbit;
+let card = null;
 
 function updateHud() {
   document.getElementById("hud").innerText = "Зайцы: " + score;
@@ -63,7 +87,10 @@ function init() {
     maxCells: 4,
   };
 
-  pickup = spawnPickup();
+  pickupsSinceLastCard = 0;
+  nextCardAt = 3 + Math.floor(Math.random() * 3);
+  rabbit = spawnRabbit();
+  card = null;
   score = 0;
   gameOver = false;
 
@@ -79,7 +106,7 @@ function isOnSnake(x, y) {
   return snake.cells.some((cell) => cell.x === x && cell.y === y);
 }
 
-function spawnPickup() {
+function spawnRabbit() {
   let x, y;
   let tries = 0;
 
@@ -90,6 +117,22 @@ function spawnPickup() {
   } while (isOnSnake(x, y) && tries < 100);
 
   return { x, y };
+}
+
+function spawnCard() {
+  let x, y;
+  let tries = 0;
+
+  do {
+    x = getRandomInt(0, tileCount) * grid;
+    y = getRandomInt(0, tileCount) * grid;
+    tries++;
+  } while (
+    (isOnSnake(x, y) || (rabbit && x === rabbit.x && y === rabbit.y)) &&
+    tries < 100
+  );
+
+  return { x, y, ttl: CARD_TTL };
 }
 
 function endGame() {
@@ -155,71 +198,7 @@ function roundRect(x, y, width, height, radius) {
   context.closePath();
 }
 
-function drawWheels() {
-  const wheelR = grid / 8;
-  const wheelY = grid - grid / 8;
-
-  context.fillStyle = COLORS.wheel;
-  context.beginPath();
-  context.arc(grid / 4, wheelY, wheelR, 0, Math.PI * 2);
-  context.arc(grid - grid / 4, wheelY, wheelR, 0, Math.PI * 2);
-  context.fill();
-}
-
-function drawRabbitInWindow(x, y, size) {
-  if (!rabbitImg.complete) return;
-  context.drawImage(rabbitImg, x, y, size, size);
-}
-
-function drawBusHead() {
-  const bodyH = grid - grid / 4;
-  const radius = grid / 10;
-
-  context.fillStyle = COLORS.bus;
-  roundRect(0, grid / 16, grid - 1, bodyH, radius);
-  context.fill();
-
-  context.fillStyle = COLORS.busFront;
-  roundRect(
-    grid - grid / 2.3,
-    grid / 8,
-    grid / 5.3,
-    grid - grid / 5.3,
-    grid / 16,
-  );
-  context.fill();
-
-  context.fillStyle = COLORS.window;
-  roundRect(grid / 10, grid / 10, grid / 4, grid / 4.5, grid / 16);
-  context.fill();
-
-  drawRabbitInWindow(grid / 9, grid / 12, grid / 4.5);
-
-  drawWheels();
-}
-
-function drawBusCarriage() {
-  const bodyH = grid - grid / 4;
-  const radius = grid / 16;
-
-  context.fillStyle = COLORS.bus;
-  roundRect(0, grid / 16, grid - 1, bodyH, radius);
-  context.fill();
-
-  context.strokeStyle = COLORS.busDark;
-  context.lineWidth = 2;
-  context.strokeRect(1, grid / 10, grid - 2, bodyH - grid / 20);
-
-  context.fillStyle = COLORS.window;
-  roundRect(grid / 10, grid / 10, grid - grid / 5, grid / 4.5, grid / 16);
-  context.fill();
-
-  drawRabbitInWindow(grid / 8, grid / 10, grid / 5.3);
-
-  drawWheels();
-}
-
-function drawBusSegment(cell, index) {
+function drawSegmentImage(img, cell, index) {
   const { dx, dy } = getSegmentDirection(index);
 
   context.save();
@@ -231,16 +210,31 @@ function drawBusSegment(cell, index) {
 
   context.translate(-grid / 2, -grid / 2);
 
-  if (index === 0) {
-    drawBusHead();
+  if (img.complete) {
+    context.drawImage(img, 0, 0, grid, grid);
   } else {
-    drawBusCarriage();
+    context.fillStyle = "#E53935";
+    context.fillRect(0, 0, grid, grid);
   }
 
   context.restore();
 }
 
-function drawPickup() {
+function drawBusSegment(cell, index) {
+  let img;
+
+  if (index === 0) {
+    img = busHeadImg;
+  } else if (index === snake.cells.length - 1) {
+    img = busBackImg;
+  } else {
+    img = busBodyImg;
+  }
+
+  drawSegmentImage(img, cell, index);
+}
+
+function drawRabbit() {
   if (!rabbitImg.complete) return;
 
   context.save();
@@ -250,11 +244,24 @@ function drawPickup() {
 
   context.drawImage(
     rabbitImg,
-    pickup.x + padding,
-    pickup.y + padding,
+    rabbit.x + padding,
+    rabbit.y + padding,
     size,
     size,
   );
+
+  context.restore();
+}
+
+function drawCard() {
+  if (!card || !cardImg.complete) return;
+
+  context.save();
+
+  const padding = 2;
+  const size = grid - padding * 2;
+
+  context.drawImage(cardImg, card.x + padding, card.y + padding, size, size);
 
   context.restore();
 }
@@ -275,11 +282,38 @@ function update() {
     snake.cells.pop();
   }
 
-  if (snake.x === pickup.x && snake.y === pickup.y) {
+  if (snake.x === rabbit.x && snake.y === rabbit.y) {
     snake.maxCells++;
     score++;
     updateHud();
-    pickup = spawnPickup();
+    rabbit = spawnRabbit();
+    pickupsSinceLastCard++;
+
+    if (pickupsSinceLastCard >= nextCardAt && snake.cells.length >= 4) {
+      card = spawnCard();
+      pickupsSinceLastCard = 0;
+      nextCardAt = 3 + Math.floor(Math.random() * 3);
+    }
+  }
+
+  if (card && snake.x === card.x && snake.y === card.y) {
+    snake.maxCells = Math.max(1, snake.maxCells - 1);
+
+    while (snake.cells.length > snake.maxCells) {
+      snake.cells.pop();
+    }
+
+    score--;
+    updateHud();
+    card = null;
+  }
+
+  if (card) {
+    card.ttl -= step / 1000;
+
+    if (card.ttl <= 0) {
+      card = null;
+    }
   }
 
   for (let i = 1; i < snake.cells.length; i++) {
@@ -293,7 +327,11 @@ function update() {
 function render() {
   context.clearRect(0, 0, GAME_SIZE, GAME_SIZE);
 
-  drawPickup();
+  drawRabbit();
+
+  if (card) {
+    drawCard();
+  }
 
   snake.cells.forEach((cell, index) => {
     drawBusSegment(cell, index);
@@ -429,8 +467,23 @@ function startGame() {
   loop();
 }
 
-if (rabbitImg.complete) {
-  startGame();
-} else {
-  rabbitImg.onload = startGame;
+const images = [rabbitImg, cardImg, busHeadImg, busBodyImg, busBackImg];
+let imagesLoaded = 0;
+
+function onImageReady() {
+  imagesLoaded++;
+
+  if (imagesLoaded === images.length) {
+    startGame();
+  }
 }
+
+images.forEach((img) => {
+  if (img.complete) {
+    onImageReady();
+  } else {
+    img.onload = onImageReady;
+  }
+
+  img.onerror = onImageReady;
+});
