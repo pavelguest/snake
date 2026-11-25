@@ -26,6 +26,8 @@ function updateGameSize() {
 updateGameSize();
 
 function resizeCanvas() {
+  updateGameSize();
+
   const dpr = window.devicePixelRatio || 1;
 
   canvas.width = GAME_SIZE * dpr;
@@ -70,11 +72,11 @@ let gameOver = false;
 let pickupsSinceLastCard = 0;
 let nextCardAt = 0;
 const CARD_TTL = 5; // seconds
-let rabbit;
+let rabbit = null;
 let card = null;
 
 function updateHud() {
-  document.getElementById("hud").innerText = "Зайцы: " + score;
+  document.getElementById("hud").innerText = "Счёт: " + score;
 }
 
 function init() {
@@ -89,8 +91,8 @@ function init() {
 
   pickupsSinceLastCard = 0;
   nextCardAt = 3 + Math.floor(Math.random() * 3);
-  rabbit = spawnRabbit();
-  card = null;
+  rabbit = null;
+  card = spawnCard();
   score = 0;
   gameOver = false;
 
@@ -98,41 +100,47 @@ function init() {
   document.getElementById("overlay").style.display = "none";
 }
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
 function isOnSnake(x, y) {
   return snake.cells.some((cell) => cell.x === x && cell.y === y);
 }
 
+function getFreePosition() {
+  const freeCells = [];
+
+  for (let x = 0; x < tileCount; x++) {
+    for (let y = 0; y < tileCount; y++) {
+      const posX = x * grid;
+      const posY = y * grid;
+
+      if (isOnSnake(posX, posY)) continue;
+
+      if (card && posX === card.x && posY === card.y) continue;
+
+      if (rabbit && posX === rabbit.x && posY === rabbit.y) continue;
+
+      freeCells.push({ x: posX, y: posY });
+    }
+  }
+
+  if (freeCells.length === 0) return null;
+
+  return freeCells[Math.floor(Math.random() * freeCells.length)];
+}
+
 function spawnRabbit() {
-  let x, y;
-  let tries = 0;
+  const position = getFreePosition();
 
-  do {
-    x = getRandomInt(0, tileCount) * grid;
-    y = getRandomInt(0, tileCount) * grid;
-    tries++;
-  } while (isOnSnake(x, y) && tries < 100);
+  if (!position) return null;
 
-  return { x, y };
+  return { ...position, ttl: CARD_TTL };
 }
 
 function spawnCard() {
-  let x, y;
-  let tries = 0;
+  const position = getFreePosition();
 
-  do {
-    x = getRandomInt(0, tileCount) * grid;
-    y = getRandomInt(0, tileCount) * grid;
-    tries++;
-  } while (
-    (isOnSnake(x, y) || (rabbit && x === rabbit.x && y === rabbit.y)) &&
-    tries < 100
-  );
+  if (!position) return null;
 
-  return { x, y, ttl: CARD_TTL };
+  return position;
 }
 
 function endGame() {
@@ -141,7 +149,7 @@ function endGame() {
   gameOver = true;
 
   document.getElementById("overlay").style.display = "flex";
-  document.getElementById("finalScore").innerText = "Зайцы: " + score;
+  document.getElementById("finalScore").innerText = "Счёт: " + score;
 
   if (window.ReactNativeWebView) {
     window.ReactNativeWebView.postMessage(
@@ -155,6 +163,8 @@ function endGame() {
 }
 
 function restart() {
+  lastTime = 0;
+  accumulator = 0;
   init();
 }
 
@@ -177,25 +187,6 @@ function getSegmentDirection(index) {
   const curr = snake.cells[index];
   const towardHead = snake.cells[index - 1];
   return { dx: towardHead.x - curr.x, dy: towardHead.y - curr.y };
-}
-
-function roundRect(x, y, width, height, radius) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + radius);
-  context.lineTo(x + width, y + height - radius);
-  context.quadraticCurveTo(
-    x + width,
-    y + height,
-    x + width - radius,
-    y + height,
-  );
-  context.lineTo(x + radius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.closePath();
 }
 
 function drawSegmentImage(img, cell, index) {
@@ -282,21 +273,21 @@ function update() {
     snake.cells.pop();
   }
 
-  if (snake.x === rabbit.x && snake.y === rabbit.y) {
+  if (card && snake.x === card.x && snake.y === card.y) {
     snake.maxCells++;
     score++;
     updateHud();
-    rabbit = spawnRabbit();
+    card = spawnCard();
     pickupsSinceLastCard++;
 
     if (pickupsSinceLastCard >= nextCardAt && snake.cells.length >= 4) {
-      card = spawnCard();
+      rabbit = spawnRabbit();
       pickupsSinceLastCard = 0;
       nextCardAt = 3 + Math.floor(Math.random() * 3);
     }
   }
 
-  if (card && snake.x === card.x && snake.y === card.y) {
+  if (rabbit && snake.x === rabbit.x && snake.y === rabbit.y) {
     snake.maxCells = Math.max(1, snake.maxCells - 1);
 
     while (snake.cells.length > snake.maxCells) {
@@ -305,14 +296,14 @@ function update() {
 
     score--;
     updateHud();
-    card = null;
+    rabbit = null;
   }
 
-  if (card) {
-    card.ttl -= step / 1000;
+  if (rabbit) {
+    rabbit.ttl -= step / 1000;
 
-    if (card.ttl <= 0) {
-      card = null;
+    if (rabbit.ttl <= 0) {
+      rabbit = null;
     }
   }
 
@@ -327,10 +318,10 @@ function update() {
 function render() {
   context.clearRect(0, 0, GAME_SIZE, GAME_SIZE);
 
-  drawRabbit();
+  drawCard();
 
-  if (card) {
-    drawCard();
+  if (rabbit) {
+    drawRabbit();
   }
 
   snake.cells.forEach((cell, index) => {
@@ -483,7 +474,6 @@ images.forEach((img) => {
     onImageReady();
   } else {
     img.onload = onImageReady;
+    img.onerror = onImageReady;
   }
-
-  img.onerror = onImageReady;
 });
