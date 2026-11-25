@@ -81,9 +81,9 @@ function updateHud() {
 
 function init() {
   snake = {
-    x: grid * 6,
-    y: grid * 6,
-    dx: grid,
+    x: 6,
+    y: 6,
+    dx: 1,
     dy: 0,
     cells: [],
     maxCells: 4,
@@ -101,6 +101,8 @@ function init() {
 }
 
 function isOnSnake(x, y) {
+  if (snake.x === x && snake.y === y) return true;
+
   return snake.cells.some((cell) => cell.x === x && cell.y === y);
 }
 
@@ -109,16 +111,13 @@ function getFreePosition() {
 
   for (let x = 0; x < tileCount; x++) {
     for (let y = 0; y < tileCount; y++) {
-      const posX = x * grid;
-      const posY = y * grid;
+      if (isOnSnake(x, y)) continue;
 
-      if (isOnSnake(posX, posY)) continue;
+      if (card && card.x === x && card.y === y) continue;
 
-      if (card && posX === card.x && posY === card.y) continue;
+      if (rabbit && rabbit.x === x && rabbit.y === y) continue;
 
-      if (rabbit && posX === rabbit.x && posY === rabbit.y) continue;
-
-      freeCells.push({ x: posX, y: posY });
+      freeCells.push({ x, y });
     }
   }
 
@@ -186,15 +185,24 @@ function getSegmentDirection(index) {
 
   const curr = snake.cells[index];
   const towardHead = snake.cells[index - 1];
-  return { dx: towardHead.x - curr.x, dy: towardHead.y - curr.y };
+
+  let dx = towardHead.x - curr.x;
+  let dy = towardHead.y - curr.y;
+
+  if (dx > 1) dx = -1;
+  if (dx < -1) dx = 1;
+
+  if (dy > 1) dy = -1;
+  if (dy < -1) dy = 1;
+
+  return { dx, dy };
 }
 
 function drawSegmentImage(img, cell, index) {
   const { dx, dy } = getSegmentDirection(index);
 
   context.save();
-  context.translate(cell.x + grid / 2, cell.y + grid / 2);
-
+  context.translate(cell.x * grid + grid / 2, cell.y * grid + grid / 2);
   if (dx < 0) context.rotate(Math.PI);
   else if (dy > 0) context.rotate(Math.PI / 2);
   else if (dy < 0) context.rotate(-Math.PI / 2);
@@ -235,8 +243,8 @@ function drawRabbit() {
 
   context.drawImage(
     rabbitImg,
-    rabbit.x + padding,
-    rabbit.y + padding,
+    rabbit.x * grid + padding,
+    rabbit.y * grid + padding,
     size,
     size,
   );
@@ -252,8 +260,13 @@ function drawCard() {
   const padding = 2;
   const size = grid - padding * 2;
 
-  context.drawImage(cardImg, card.x + padding, card.y + padding, size, size);
-
+  context.drawImage(
+    cardImg,
+    card.x * grid + padding,
+    card.y * grid + padding,
+    size,
+    size,
+  );
   context.restore();
 }
 
@@ -261,13 +274,16 @@ function update() {
   snake.x += snake.dx;
   snake.y += snake.dy;
 
-  if (snake.x < 0) snake.x = GAME_SIZE - grid;
-  else if (snake.x >= GAME_SIZE) snake.x = 0;
+  if (snake.x < 0) snake.x = tileCount - 1;
+  else if (snake.x >= tileCount) snake.x = 0;
 
-  if (snake.y < 0) snake.y = GAME_SIZE - grid;
-  else if (snake.y >= GAME_SIZE) snake.y = 0;
+  if (snake.y < 0) snake.y = tileCount - 1;
+  else if (snake.y >= tileCount) snake.y = 0;
 
-  snake.cells.unshift({ x: snake.x, y: snake.y });
+  snake.cells.unshift({
+    x: snake.x,
+    y: snake.y,
+  });
 
   if (snake.cells.length > snake.maxCells) {
     snake.cells.pop();
@@ -277,6 +293,7 @@ function update() {
     snake.maxCells++;
     score++;
     updateHud();
+
     card = spawnCard();
     pickupsSinceLastCard++;
 
@@ -403,9 +420,9 @@ canvas.addEventListener(
     }
 
     if (absX > absY) {
-      setDirection(dx > 0 ? grid : -grid, 0);
+      setDirection(dx > 0 ? 1 : -1, 0);
     } else {
-      setDirection(0, dy > 0 ? grid : -grid);
+      setDirection(0, dy > 0 ? 1 : -1);
     }
 
     isSwiping = false;
@@ -428,25 +445,25 @@ window.addEventListener("keydown", (e) => {
     case "ArrowUp":
     case "w":
     case "W":
-      setDirection(0, -grid);
+      setDirection(0, -1);
       break;
 
     case "ArrowDown":
     case "s":
     case "S":
-      setDirection(0, grid);
+      setDirection(0, 1);
       break;
 
     case "ArrowLeft":
     case "a":
     case "A":
-      setDirection(-grid, 0);
+      setDirection(-1, 0);
       break;
 
     case "ArrowRight":
     case "d":
     case "D":
-      setDirection(grid, 0);
+      setDirection(1, 0);
       break;
   }
 });
